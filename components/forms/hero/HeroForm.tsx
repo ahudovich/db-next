@@ -6,8 +6,8 @@ import { HeroFormSlider } from '@/components/forms/hero/HeroFormSlider'
 import { HeroFormToggle, HeroFormToggleItem } from '@/components/forms/hero/HeroFormToggle'
 import { BaseCtaButton } from '@/components/ui/BaseCtaButton'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
 import { cn } from '@/lib/utils'
-import { CreditPurpose } from '@/types/loan-form'
 
 export function HeroForm({ className }: { className?: string }) {
   const id = useId()

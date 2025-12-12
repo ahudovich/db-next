@@ -1,3 +1,6 @@
+import type { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
+import type { HousingCondition } from '@/enums/form/HousingCondition.enum'
+import type { MaritalStatus } from '@/enums/form/MaritalStatus.enum'
 import type { DawaAddressAutocompleteResult } from '@/types/dawa'
 
 export enum EntryPath {
@@ -5,16 +8,7 @@ export enum EntryPath {
   Dreamer = 'dreamer',
 }
 
-export type HousingCondition = 'ejerbolig' | 'andelsbolig' | 'lejebolig' | 'hjemmeboende'
-
-export type MaritalStatus = 'gift' | 'samlever' | 'enlig' | 'skilt' | 'enke'
-
 export type NumberOfDebtors = 1 | 2 | 3 | 4
-
-export enum CreditPurpose {
-  Purchase = 'purchase',
-  Supplement = 'supplement',
-}
 
 export interface LoanFormState {
   entryPath: EntryPath | null
