@@ -2,6 +2,8 @@
 
 import { z } from 'zod'
 import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
+import { HousingCondition } from '@/enums/form/HousingCondition.enum'
+import { MaritalStatus } from '@/enums/form/MaritalStatus.enum'
 import { env } from '@/env'
 
 const SOURCE = 'danskboliglaan'
@@ -139,6 +141,61 @@ export async function updateCasePropertyIdAction(
     return {
       status: 'error',
       error: 'Failed to update case with property ID.',
+    }
+  }
+}
+
+/**
+ * Updates a case with housing conditions, marital status, and children
+ */
+const updateCaseLifeSituationSchema = z.object({
+  caseId: z.string().min(1, 'Case ID is missing'),
+  housingConditions: z.enum(HousingCondition),
+  maritalStatus: z.enum(MaritalStatus),
+  numberOfChildren: z.number().nullable(),
+  agesOfChildren: z.array(z.number()),
+})
+
+// prettier-ignore
+type UpdateCaseLifeSituationResponse =
+  | { status: 'success' }
+  | { status: 'error'; error: string }
+
+export async function updateCaseLifeSituationAction(
+  data: z.infer<typeof updateCaseLifeSituationSchema>
+): Promise<UpdateCaseLifeSituationResponse> {
+  try {
+    const result = updateCaseLifeSituationSchema.safeParse(data)
+
+
+    if (!result.success) {
+      throw result.error
+    }
+
+    const response = await fetch(`${BASE_URL}/${result.data.caseId}`, {
+      method: 'PATCH',
+      headers: HEADERS,
+      body: JSON.stringify({
+        housingConditions: result.data.housingConditions,
+        maritalStatus: result.data.maritalStatus,
+        numberOfChildren: result.data.numberOfChildren,
+        agesOfChildren: result.data.agesOfChildren,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('API error')
+    }
+
+    return {
+      status: 'success',
+    }
+  } catch (error) {
+    console.error(error)
+
+    return {
+      status: 'error',
+      error: 'Failed to update case with life situation.',
     }
   }
 }

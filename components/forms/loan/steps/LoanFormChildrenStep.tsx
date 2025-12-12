@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { NumberField } from '@base-ui/react/number-field'
-import { MinusIcon, PlusIcon } from 'lucide-react'
+import { CircleAlertIcon, MinusIcon, PlusIcon } from 'lucide-react'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
   LoanFormHeader,
   LoanFormHeaderDescription,
   LoanFormHeaderTitle,
 } from '@/components/forms/loan/LoanFormHeader'
+import { BaseAlert, BaseAlertDescription } from '@/components/ui/BaseAlert'
 import { BaseInput } from '@/components/ui/BaseInput'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { updateCaseLifeSituationAction } from '@/lib/actions/cases'
+import type { HousingCondition } from '@/enums/form/HousingCondition.enum'
+import type { MaritalStatus } from '@/enums/form/MaritalStatus.enum'
 
 const MAX_CHILDREN_COUNT = 10
 
@@ -20,6 +24,9 @@ export function LoanFormChildrenStep({
   onPreviousStep: () => void
 }) {
   const { formData, updateFormData } = useLoanFormContext()
+
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
 
   const [childrenCount, setChildrenCount] = useState(formData.numberOfChildren ?? 0)
   const [childrenAges, setChildrenAges] = useState<Array<number | ''>>(
@@ -34,7 +41,33 @@ export function LoanFormChildrenStep({
       agesOfChildren: childrenAges as Array<number>,
     })
 
-    onNextStep()
+    setError(null)
+
+    startTransition(async () => {
+      // Don't call API if the case ID is missing
+      if (!formData.caseId) {
+        onNextStep()
+        return
+      }
+
+      const response = await updateCaseLifeSituationAction({
+        caseId: formData.caseId,
+        housingConditions: formData.housingConditions as HousingCondition,
+        maritalStatus: formData.maritalStatus as MaritalStatus,
+        numberOfChildren: childrenCount,
+        agesOfChildren: childrenAges as Array<number>,
+      })
+
+      startTransition(() => {
+        if (response.status === 'success') {
+          onNextStep()
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   function handleAgeChange(event: React.ChangeEvent<HTMLInputElement>, index: number) {
@@ -51,6 +84,13 @@ export function LoanFormChildrenStep({
           Børn påvirker rådighedsbeløbet &ndash; vi hjælper med beregningen.
         </LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <form onSubmit={handleSubmit}>
         <NumberField.Root
@@ -96,8 +136,9 @@ export function LoanFormChildrenStep({
 
         <LoanFormFooter
           isNextStepDisabled={
-            childrenCount > 0 &&
-            (childrenAges.length !== childrenCount || childrenAges.some((age) => age === ''))
+            isPending ||
+            (childrenCount > 0 &&
+              (childrenAges.length !== childrenCount || childrenAges.some((age) => age === '')))
           }
           onPrevious={onPreviousStep}
         />
