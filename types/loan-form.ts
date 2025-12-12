@@ -11,6 +11,9 @@ export enum EntryPath {
 export type NumberOfDebtors = 1 | 2 | 3 | 4
 
 export interface LoanFormState {
+  // Case ID from the Simpel Kredit API response
+  caseId: string | null
+
   entryPath: EntryPath | null
 
   base: {

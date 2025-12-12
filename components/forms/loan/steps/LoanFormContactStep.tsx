@@ -1,9 +1,9 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CircleCheckIcon } from 'lucide-react'
+import { CircleAlertIcon, CircleCheckIcon } from 'lucide-react'
 import { z } from 'zod'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
@@ -15,6 +15,8 @@ import { BaseAlert, BaseAlertDescription } from '@/components/ui/BaseAlert'
 import { BaseField, BaseFieldError, BaseFieldLabel } from '@/components/ui/BaseField'
 import { BaseInput } from '@/components/ui/BaseInput'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { createCaseAction } from '@/lib/actions/cases'
+import type { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'Fornavn er påkrævet').trim(),
@@ -34,6 +36,8 @@ export function LoanFormContactStep({
 }) {
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,7 +49,9 @@ export function LoanFormContactStep({
     },
   })
 
-  function handleSubmit(data: z.infer<typeof formSchema>) {
+  async function handleSubmit(data: z.infer<typeof formSchema>) {
+    setError(null)
+
     updateFormData({
       debtors: [
         {
@@ -58,7 +64,38 @@ export function LoanFormContactStep({
       ],
     })
 
-    onNextStep()
+    startTransition(async () => {
+      if (!formData.base) return
+
+      const response = await createCaseAction({
+        base: {
+          creditPurpose: formData.base.creditPurpose as CreditPurpose,
+          loanAmount: formData.base.loanAmount as number,
+          payout: formData.base.payout,
+          equity: formData.base.equity,
+        },
+        debtor: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phoneNumber: data.phone,
+        },
+      })
+
+      startTransition(() => {
+        if (response.status === 'success') {
+          updateFormData({
+            caseId: response.data.caseId,
+          })
+
+          onNextStep()
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   return (
@@ -69,6 +106,13 @@ export function LoanFormContactStep({
           Helt uforpligtende. Vi spammer aldrig.
         </LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <form className={className} onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="grid gap-6">
@@ -150,7 +194,7 @@ export function LoanFormContactStep({
           </BaseAlert>
         </div>
 
-        <LoanFormFooter onPrevious={onPreviousStep} />
+        <LoanFormFooter isNextStepDisabled={isPending} onPrevious={onPreviousStep} />
       </form>
     </>
   )
