@@ -5,19 +5,22 @@ import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
 import { env } from '@/env'
 
 const SOURCE = 'danskboliglaan'
-
 const BASE_URL = `${env.SIMPEL_KREDIT_API_URL}/cases`
+
 const HEADERS = {
   Accept: 'application/json',
   Authorization: `Bearer ${env.SIMPEL_KREDIT_TOKEN}`,
   'Content-Type': 'application/json',
 }
 
+/**
+ * Creates a case
+ */
 const createCaseSchema = z.object({
   base: z
     .object({
       creditPurpose: z.enum(CreditPurpose),
-      loanAmount: z.number().min(1, 'Loan amount is required'),
+      loanAmount: z.number().min(1, 'Loan amount is missing'),
       payout: z.number().min(1).nullable().optional(),
       equity: z.number().min(1).nullable().optional(),
     })
@@ -25,10 +28,10 @@ const createCaseSchema = z.object({
       message: 'Either payout or equity is required, but not both',
     }),
   debtor: z.object({
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    phoneNumber: z.string().min(1, 'Phone number is required'),
-    email: z.email('Invalid email address').min(1, 'Email is required'),
+    firstName: z.string().min(1, 'First name is missing'),
+    lastName: z.string().min(1, 'Last name is missing'),
+    phoneNumber: z.string().min(1, 'Phone number is missing'),
+    email: z.email('Invalid email address').min(1, 'Email is missing'),
   }),
 })
 
@@ -36,11 +39,6 @@ type CreateCaseResponse =
   | { status: 'success'; data: { caseId: string } }
   | { status: 'error'; error: string }
 
-/**
- * Creates a case in the Simpel Kredit API
- * @param data - The data to create the case with
- * @returns The response data from the API
- */
 export async function createCaseAction(
   data: z.infer<typeof createCaseSchema>
 ): Promise<CreateCaseResponse> {
@@ -90,10 +88,57 @@ export async function createCaseAction(
   } catch (error) {
     console.error(error)
 
-    // Other errors
     return {
       status: 'error',
-      error: 'Failed to create project. Please try again.',
+      error: 'Failed to create case.',
+    }
+  }
+}
+
+/**
+ * Updates a case with a property ID
+ */
+const updateCasePropertyIdSchema = z.object({
+  caseId: z.string().min(1, 'Case ID is missing'),
+  propertyId: z.string().min(1, 'Property ID is missing'),
+})
+
+// prettier-ignore
+type UpdateCasePropertyIdResponse =
+  | { status: 'success' }
+  | { status: 'error'; error: string }
+
+export async function updateCasePropertyIdAction(
+  data: z.infer<typeof updateCasePropertyIdSchema>
+): Promise<UpdateCasePropertyIdResponse> {
+  try {
+    const result = updateCasePropertyIdSchema.safeParse(data)
+
+    if (!result.success) {
+      throw result.error
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/${result.data.caseId}/addProperty/${result.data.propertyId}`,
+      {
+        method: 'PUT',
+        headers: HEADERS,
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('API error')
+    }
+
+    return {
+      status: 'success',
+    }
+  } catch (error) {
+    console.error(error)
+
+    return {
+      status: 'error',
+      error: 'Failed to update case with property ID.',
     }
   }
 }

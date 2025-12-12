@@ -36,6 +36,7 @@ export function LoanFormContactStep({
 }) {
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
+
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<Error | null>(null)
 
@@ -50,8 +51,6 @@ export function LoanFormContactStep({
   })
 
   async function handleSubmit(data: z.infer<typeof formSchema>) {
-    setError(null)
-
     updateFormData({
       debtors: [
         {
@@ -63,6 +62,8 @@ export function LoanFormContactStep({
         },
       ],
     })
+
+    setError(null)
 
     startTransition(async () => {
       if (!formData.base) return
