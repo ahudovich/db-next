@@ -12,6 +12,7 @@ export const env = createEnv({
     SIMPEL_KREDIT_TOKEN: z.string().min(1),
   },
   client: {
+    NEXT_PUBLIC_API_BASE_URL: z.httpUrl().min(1),
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1),
     NEXT_PUBLIC_GTM_ID: z.string().min(1),
     NEXT_PUBLIC_SANITY_API_VERSION: z.string().min(1),
@@ -20,6 +21,7 @@ export const env = createEnv({
   },
   // For Next.js >= 13.4.4 you only need to destructure client variables:
   experimental__runtimeEnv: {
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     NEXT_PUBLIC_GTM_ID: process.env.NEXT_PUBLIC_GTM_ID,
     NEXT_PUBLIC_SANITY_API_VERSION: process.env.NEXT_PUBLIC_SANITY_API_VERSION,
