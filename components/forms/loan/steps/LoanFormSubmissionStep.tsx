@@ -1,8 +1,9 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { CircleAlertIcon } from 'lucide-react'
 import { z } from 'zod'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
@@ -10,10 +11,12 @@ import {
   LoanFormHeaderDescription,
   LoanFormHeaderTitle,
 } from '@/components/forms/loan/LoanFormHeader'
+import { BaseAlert, BaseAlertDescription } from '@/components/ui/BaseAlert'
 import { BaseCheckbox } from '@/components/ui/BaseCheckbox'
 import { BaseField, BaseFieldError, BaseFieldLabel } from '@/components/ui/BaseField'
 import { BaseTextarea } from '@/components/ui/BaseTextarea'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { updateCaseConsentsAndCommentAction } from '@/lib/actions/cases'
 
 const formSchema = z.object({
   comment: z.string().trim().optional(),
@@ -35,6 +38,9 @@ export function LoanFormSubmissionStep({
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
 
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -45,13 +51,34 @@ export function LoanFormSubmissionStep({
   })
 
   function handleSubmit(data: z.infer<typeof formSchema>) {
-    updateFormData({
-      comment: data.comment ?? null,
-      consentTerms: data.consentTerms,
-      consentMarketing: data.consentMarketing,
-    })
+    setError(null)
 
-    onNextStep()
+    startTransition(async () => {
+      if (!formData.caseId) return
+
+      const response = await updateCaseConsentsAndCommentAction({
+        caseId: formData.caseId,
+        consentTerms: data.consentTerms,
+        consentMarketing: !!data.consentMarketing,
+        comment: data.comment ?? null,
+      })
+
+      startTransition(() => {
+        if (response.status === 'success') {
+          updateFormData({
+            comment: data.comment ?? null,
+            consentTerms: data.consentTerms,
+            consentMarketing: data.consentMarketing,
+          })
+
+          onNextStep()
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   return (
@@ -60,6 +87,13 @@ export function LoanFormSubmissionStep({
         <LoanFormHeaderTitle>Sidste tjek før beregning</LoanFormHeaderTitle>
         <LoanFormHeaderDescription>Vi er klar til at beregne dit lån</LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <form className={className} onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="grid gap-6">
@@ -128,7 +162,7 @@ export function LoanFormSubmissionStep({
           />
         </div>
 
-        <LoanFormFooter onPrevious={onPreviousStep} />
+        <LoanFormFooter isNextStepDisabled={isPending} onPrevious={onPreviousStep} />
       </form>
     </>
   )

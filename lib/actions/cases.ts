@@ -204,6 +204,58 @@ export async function updateCaseLifeSituationAction(
 }
 
 /**
+ * Updates a case with consents and comment
+ */
+const updateCaseConsentsAndCommentSchema = z.object({
+  caseId: z.string().min(1, 'Case ID is missing'),
+  consentTerms: z.boolean(),
+  consentMarketing: z.boolean(),
+  comment: z.string().nullable(),
+})
+
+// prettier-ignore
+type UpdateCaseConsentsAndCommentResponse =
+  | { status: 'success' }
+  | { status: 'error'; error: string }
+
+export async function updateCaseConsentsAndCommentAction(
+  data: z.infer<typeof updateCaseConsentsAndCommentSchema>
+): Promise<UpdateCaseConsentsAndCommentResponse> {
+  try {
+    const result = updateCaseConsentsAndCommentSchema.safeParse(data)
+
+    if (!result.success) {
+      throw result.error
+    }
+
+    const response = await fetch(`${BASE_URL}/${result.data.caseId}`, {
+      method: 'PATCH',
+      headers: HEADERS,
+      body: JSON.stringify({
+        consentTerms: result.data.consentTerms,
+        consentMarketing: result.data.consentMarketing,
+        clientDescription: result.data.comment,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('API error')
+    }
+
+    return {
+      status: 'success',
+    }
+  } catch (error) {
+    console.error(error)
+
+    return {
+      status: 'error',
+      error: 'Failed to update case with consents and comment.',
+    }
+  }
+}
+
+/**
  * Saves debtors information to a case
  */
 const saveCaseDebtorSchema = z.object({
