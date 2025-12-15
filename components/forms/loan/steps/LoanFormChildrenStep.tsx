@@ -124,6 +124,8 @@ export function LoanFormChildrenStep({
                 <BaseInput
                   key={index}
                   type="number"
+                  min={0}
+                  max={18}
                   inputMode="numeric"
                   placeholder={`Barn ${index + 1} alder`}
                   value={childrenAges[index] ?? ''}
