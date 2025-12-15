@@ -22,7 +22,7 @@ const formSchema = z.object({
   firstName: z.string().min(1, 'Fornavn er påkrævet').trim(),
   lastName: z.string().min(1, 'Efternavn er påkrævet').trim(),
   email: z.email('Ugyldig e-mail adresse').min(1, 'E-mail adresse er påkrævet').trim(),
-  phone: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
+  phoneNumber: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
 })
 
 export function LoanFormContactStep({
@@ -46,23 +46,11 @@ export function LoanFormContactStep({
       firstName: formData.debtors?.[0]?.firstName ?? '',
       lastName: formData.debtors?.[0]?.lastName ?? '',
       email: formData.debtors?.[0]?.email ?? '',
-      phone: formData.debtors?.[0]?.phoneNumber ?? '',
+      phoneNumber: formData.debtors?.[0]?.phoneNumber ?? '',
     },
   })
 
   async function handleSubmit(data: z.infer<typeof formSchema>) {
-    updateFormData({
-      debtors: [
-        {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phoneNumber: data.phone,
-          cprNumber: null, // Unavailable yet on this step
-        },
-      ],
-    })
-
     setError(null)
 
     startTransition(async () => {
@@ -79,7 +67,7 @@ export function LoanFormContactStep({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-          phoneNumber: data.phone,
+          phoneNumber: data.phoneNumber,
         },
       })
 
@@ -87,6 +75,15 @@ export function LoanFormContactStep({
         if (response.status === 'success') {
           updateFormData({
             caseId: response.data.caseId,
+            debtors: [
+              {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                phoneNumber: data.phoneNumber,
+                cprNumber: response.data.temporaryCprNumber,
+              },
+            ],
           })
 
           onNextStep()
@@ -170,13 +167,13 @@ export function LoanFormContactStep({
           />
 
           <Controller
-            name="phone"
+            name="phoneNumber"
             control={form.control}
             render={({ field, fieldState }) => (
               <BaseField data-invalid={fieldState.invalid}>
-                <BaseFieldLabel htmlFor={`${id}-phone`}>Mobilnummer</BaseFieldLabel>
+                <BaseFieldLabel htmlFor={`${id}-phoneNumber`}>Mobilnummer</BaseFieldLabel>
                 <BaseInput
-                  id={`${id}-phone`}
+                  id={`${id}-phoneNumber`}
                   autoComplete="tel"
                   inputMode="tel"
                   aria-invalid={fieldState.invalid}
