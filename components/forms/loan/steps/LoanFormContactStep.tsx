@@ -2,6 +2,7 @@
 
 import { useId, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import PhoneInput from 'react-phone-number-input'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleAlertIcon, CircleCheckIcon } from 'lucide-react'
 import { z } from 'zod'
@@ -172,8 +173,9 @@ export function LoanFormContactStep({
             render={({ field, fieldState }) => (
               <BaseField data-invalid={fieldState.invalid}>
                 <BaseFieldLabel htmlFor={`${id}-phoneNumber`}>Mobilnummer</BaseFieldLabel>
-                <BaseInput
+                <PhoneInput
                   id={`${id}-phoneNumber`}
+                  defaultCountry="DK"
                   autoComplete="tel"
                   inputMode="tel"
                   aria-invalid={fieldState.invalid}

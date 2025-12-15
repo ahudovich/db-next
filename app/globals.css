@@ -3,6 +3,8 @@
 
 @plugin '@tailwindcss/typography';
 
+@import 'react-phone-number-input/style.css';
+
 @theme {
   /* Fonts */
   --font-sans: var(--font-ubuntu-sans);
@@ -72,5 +74,25 @@
     :root {
       --container-padding: calc(var(--spacing) * 36);
     }
+  }
+}
+
+@layer components {
+  /* React Phone Number Input */
+  /* https://www.npmjs.com/package/react-phone-number-input */
+  .PhoneInput {
+    @apply border-brand-border placeholder:text-brand-dark/50 relative h-14 rounded-xl border bg-transparent px-5 py-1 text-base font-medium transition-all outline-none;
+  }
+
+  .PhoneInput--focus {
+    @apply border-brand-dark ring-brand-dark/50 ring-[3px];
+  }
+
+  .PhoneInputCountry {
+    @apply mr-0!;
+  }
+
+  .PhoneInputInput {
+    @apply ml-3 outline-none;
   }
 }
