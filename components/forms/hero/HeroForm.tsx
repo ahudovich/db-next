@@ -1,36 +1,34 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import { useRouter } from 'next/navigation'
 import { HeroFormSlider } from '@/components/forms/hero/HeroFormSlider'
 import { HeroFormToggle, HeroFormToggleItem } from '@/components/forms/hero/HeroFormToggle'
 import { BaseCtaButton } from '@/components/ui/BaseCtaButton'
-import { useLoanFormContext } from '@/contexts/loan-form'
 import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
+import { useLoanFormInitialValues } from '@/hooks/forms/useLoanFormInitialValues'
 import { cn } from '@/lib/utils'
 
 export function HeroForm({ className }: { className?: string }) {
   const id = useId()
   const router = useRouter()
-  const { updateFormData } = useLoanFormContext()
 
-  const [loanAmount, setLoanAmount] = useState<Array<number>>([1_000_000])
-  const [payout, setPayout] = useState<Array<number>>([100_000])
-  const [equity, setEquity] = useState<Array<number>>([1_000_000])
-  const [creditPurpose, setCreditPurpose] = useState<CreditPurpose>(CreditPurpose.Purchase)
+  const {
+    loanAmount,
+    setLoanAmount,
+    payout,
+    setPayout,
+    equity,
+    setEquity,
+    creditPurpose,
+    setCreditPurpose,
+    updateData,
+  } = useLoanFormInitialValues()
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    updateFormData({
-      base: {
-        creditPurpose,
-        loanAmount: loanAmount[0],
-        payout: creditPurpose === CreditPurpose.Purchase ? payout[0] : null,
-        equity: creditPurpose === CreditPurpose.Supplement ? equity[0] : null,
-      },
-    })
-
+    updateData()
     router.push(`/form`)
   }
 
