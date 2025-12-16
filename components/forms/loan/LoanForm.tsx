@@ -62,8 +62,10 @@ export function LoanForm({ className }: { className?: string }) {
   }
 
   function handlePropertyNextStep(address: string) {
-    if (!address) {
-      // Skip property review step if address is not provided
+    // Skip property review step if:
+    // - `address` is not provided
+    // - `equity` is not null ("Lån i Friværdi" path)
+    if (!address || formData.base?.equity) {
       nextStep(LoanFormStep.Housing)
     } else {
       handleNextStep()
