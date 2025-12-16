@@ -1,8 +1,8 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { APIProvider } from '@vis.gl/react-google-maps'
-import { CheckCircleIcon, InfoIcon, MapPinIcon } from 'lucide-react'
+import { CheckCircleIcon, CircleAlertIcon, InfoIcon, MapPinIcon } from 'lucide-react'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
   LoanFormHeader,
@@ -15,6 +15,7 @@ import { StreetViewMap } from '@/components/maps/StreetViewMap'
 import { BaseAlert, BaseAlertDescription, BaseAlertTitle } from '@/components/ui/BaseAlert'
 import { useLoanFormContext } from '@/contexts/loan-form'
 import { env } from '@/env'
+import { updateCasePropertyIdAction } from '@/lib/actions/cases'
 import type { DawaAddressAutocompleteResult } from '@/types/dawa'
 
 export function LoanFormPropertyStep({
@@ -31,6 +32,9 @@ export function LoanFormPropertyStep({
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
 
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
+
   const [searchValue, setSearchValue] = useState(formData.property?.address ?? '')
   const [selectedValue, setSelectedValue] = useState<DawaAddressAutocompleteResult | null>(
     formData.property?.dawaResult ?? null
@@ -38,7 +42,9 @@ export function LoanFormPropertyStep({
 
   const isNextButtonDimmed = !selectedValue
 
-  function handleSubmit() {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
     const address = selectedValue?.tekst ?? ''
 
     updateFormData({
@@ -48,7 +54,32 @@ export function LoanFormPropertyStep({
       },
     })
 
-    onNextStep(address)
+    setError(null)
+
+    startTransition(async () => {
+      // Don't call API if the property ID or case ID is missing
+      if (!selectedValue?.adresse.id || !formData.caseId) {
+        onNextStep(address)
+        return
+      }
+
+      const response = await updateCasePropertyIdAction({
+        caseId: formData.caseId,
+        propertyId: selectedValue.adresse.id,
+      })
+
+      console.log(response)
+
+      startTransition(() => {
+        if (response.status === 'success') {
+          onNextStep(address)
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   return (
@@ -61,6 +92,13 @@ export function LoanFormPropertyStep({
           Vi henter automatisk oplysninger om boligen.
         </LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <form className={className} onSubmit={handleSubmit}>
         <div className="grid gap-6">
@@ -88,6 +126,7 @@ export function LoanFormPropertyStep({
         </div>
 
         <LoanFormFooter
+          isNextStepDisabled={isPending}
           isNextButtonDimmed={isNextButtonDimmed}
           nextButtonText={isNextButtonDimmed ? 'Spring over' : 'Fortsæt'}
           onPrevious={onPreviousStep}

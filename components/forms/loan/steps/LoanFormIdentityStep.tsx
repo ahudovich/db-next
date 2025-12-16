@@ -1,7 +1,8 @@
-import { useId } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import PhoneInput from 'react-phone-number-input'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LockIcon } from 'lucide-react'
+import { CircleAlertIcon, LockIcon } from 'lucide-react'
 import z from 'zod'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
@@ -14,6 +15,7 @@ import { BaseField, BaseFieldError, BaseFieldLabel } from '@/components/ui/BaseF
 import { BaseInput } from '@/components/ui/BaseInput'
 import { BaseSeparator } from '@/components/ui/BaseSeparator'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { saveCaseDebtorsAction } from '@/lib/actions/cases'
 import { cprSchema } from '@/types/schemas/cpr-number'
 import { formatCprNumber } from '@/utils/validation'
 import type { LoanFormState } from '@/types/loan-form'
@@ -22,7 +24,7 @@ const additionalDebtorSchema = z.object({
   firstName: z.string().min(1, 'Fornavn er påkrævet').trim(),
   lastName: z.string().min(1, 'Efternavn er påkrævet').trim(),
   email: z.email('Ugyldig e-mail adresse').min(1, 'E-mail adresse er påkrævet').trim(),
-  phone: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
+  phoneNumber: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
   cprNumber: cprSchema,
 })
 
@@ -51,6 +53,9 @@ export function LoanFormIdentityStep({
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
 
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
+
   // Always available on this step
   const mainDebtorInfo = formData.debtors?.[0] as LoanFormState['debtors'][0]
   const numberOfDebtors = formData.numberOfDebtors ?? 1
@@ -62,7 +67,7 @@ export function LoanFormIdentityStep({
 
   function getDefaultValues() {
     const values: Record<string, any> = {
-      mainDebtorCprNumber: mainDebtorInfo?.cprNumber ?? '',
+      mainDebtorCprNumber: '',
     }
 
     // Add default values for additional debtors
@@ -74,7 +79,7 @@ export function LoanFormIdentityStep({
         firstName: existingDebtor?.firstName ?? '',
         lastName: existingDebtor?.lastName ?? '',
         email: existingDebtor?.email ?? '',
-        phone: existingDebtor?.phoneNumber ?? '',
+        phoneNumber: existingDebtor?.phoneNumber ?? '',
         cprNumber: existingDebtor?.cprNumber ?? '',
       }
     }
@@ -100,17 +105,46 @@ export function LoanFormIdentityStep({
           firstName: additionalDebtorData.firstName,
           lastName: additionalDebtorData.lastName,
           email: additionalDebtorData.email,
-          phoneNumber: additionalDebtorData.phone,
+          phoneNumber: additionalDebtorData.phoneNumber,
           cprNumber: additionalDebtorData.cprNumber,
         }
       }
     }
 
-    updateFormData({
-      debtors: updatedDebtors,
-    })
+    setError(null)
 
-    onNextStep()
+    startTransition(async () => {
+      if (!formData.caseId || !mainDebtorInfo.cprNumber) return
+
+      const additionalDebtors = updatedDebtors.length > 1 ? updatedDebtors.slice(1) : null
+
+      const response = await saveCaseDebtorsAction({
+        caseId: formData.caseId,
+        mainDebtor: {
+          oldCprNumber: mainDebtorInfo.cprNumber,
+          newCprNumber: data.mainDebtorCprNumber,
+        },
+        additionalDebtors: additionalDebtors
+          ? additionalDebtors.map((debtor) => ({
+              ...(debtor as AdditionalDebtor),
+            }))
+          : null,
+      })
+
+      startTransition(() => {
+        if (response.status === 'success') {
+          updateFormData({
+            debtors: updatedDebtors,
+          })
+
+          onNextStep()
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   return (
@@ -122,6 +156,13 @@ export function LoanFormIdentityStep({
           papirarbejdet.
         </LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <div className="mb-6">
         <h3 className="mb-6 text-xl font-semibold">
@@ -253,15 +294,16 @@ export function LoanFormIdentityStep({
                     />
 
                     <Controller
-                      name={`${fieldPrefix}.phone`}
+                      name={`${fieldPrefix}.phoneNumber`}
                       control={form.control}
                       render={({ field, fieldState }) => (
                         <BaseField data-invalid={fieldState.invalid}>
-                          <BaseFieldLabel htmlFor={`${id}-${fieldPrefix}-phone`}>
+                          <BaseFieldLabel htmlFor={`${id}-${fieldPrefix}-phoneNumber`}>
                             Mobilnummer
                           </BaseFieldLabel>
-                          <BaseInput
-                            id={`${id}-${fieldPrefix}-phone`}
+                          <PhoneInput
+                            id={`${id}-${fieldPrefix}-phoneNumber`}
+                            defaultCountry="DK"
                             autoComplete="tel"
                             inputMode="tel"
                             aria-invalid={fieldState.invalid}
@@ -303,7 +345,7 @@ export function LoanFormIdentityStep({
           </>
         )}
 
-        <LoanFormFooter onPrevious={onPreviousStep} />
+        <LoanFormFooter isNextStepDisabled={isPending} onPrevious={onPreviousStep} />
       </form>
     </>
   )

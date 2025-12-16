@@ -30,6 +30,7 @@ export function LoanFormProvider({ children }: { children: React.ReactNode }) {
   const [step, setStep] = useState(INITIAL_STEP)
 
   const [formData, setFormData] = useState<Partial<LoanFormState>>({
+    caseId: null,
     entryPath: EntryPath.Planner, // Default entry path until "Dreamer" is implemented
     base: {
       creditPurpose: null,

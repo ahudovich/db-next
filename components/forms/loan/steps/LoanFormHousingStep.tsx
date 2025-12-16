@@ -4,15 +4,15 @@ import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import { LoanFormHeader, LoanFormHeaderTitle } from '@/components/forms/loan/LoanFormHeader'
 import { LoanFormSelectionCard } from '@/components/forms/loan/steps/LoanFormSelectionCard'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { HousingCondition } from '@/enums/form/HousingCondition.enum'
 import type { LucideIcon } from 'lucide-react'
-import type { HousingCondition } from '@/types/loan-form'
 
-const options: Array<{ label: string; value: HousingCondition; icon: LucideIcon }> = [
-  { label: 'Ejerbolig', value: 'ejerbolig', icon: HomeIcon },
-  { label: 'Andelsbolig', value: 'andelsbolig', icon: Building2Icon },
-  { label: 'Lejebolig', value: 'lejebolig', icon: KeyIcon },
-  { label: 'Hjemmeboende', value: 'hjemmeboende', icon: UsersIcon },
-] as const
+const options: Readonly<Array<{ label: string; value: HousingCondition; icon: LucideIcon }>> = [
+  { label: 'Ejerbolig', value: HousingCondition.Own, icon: HomeIcon },
+  { label: 'Andelsbolig', value: HousingCondition.Cooperative, icon: Building2Icon },
+  { label: 'Lejebolig', value: HousingCondition.Rented, icon: KeyIcon },
+  { label: 'Hjemmeboende', value: HousingCondition.Home, icon: UsersIcon },
+]
 
 export function LoanFormHousingStep({
   onNextStep,

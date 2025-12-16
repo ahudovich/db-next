@@ -1,9 +1,10 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import PhoneInput from 'react-phone-number-input'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CircleCheckIcon } from 'lucide-react'
+import { CircleAlertIcon, CircleCheckIcon } from 'lucide-react'
 import { z } from 'zod'
 import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import {
@@ -15,12 +16,14 @@ import { BaseAlert, BaseAlertDescription } from '@/components/ui/BaseAlert'
 import { BaseField, BaseFieldError, BaseFieldLabel } from '@/components/ui/BaseField'
 import { BaseInput } from '@/components/ui/BaseInput'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { createCaseAction } from '@/lib/actions/cases'
+import type { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'Fornavn er påkrævet').trim(),
   lastName: z.string().min(1, 'Efternavn er påkrævet').trim(),
   email: z.email('Ugyldig e-mail adresse').min(1, 'E-mail adresse er påkrævet').trim(),
-  phone: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
+  phoneNumber: z.string().min(1, 'Mobilnummer er påkrævet').trim(),
 })
 
 export function LoanFormContactStep({
@@ -35,30 +38,63 @@ export function LoanFormContactStep({
   const id = useId()
   const { formData, updateFormData } = useLoanFormContext()
 
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<Error | null>(null)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: formData.debtors?.[0]?.firstName ?? '',
       lastName: formData.debtors?.[0]?.lastName ?? '',
       email: formData.debtors?.[0]?.email ?? '',
-      phone: formData.debtors?.[0]?.phoneNumber ?? '',
+      phoneNumber: formData.debtors?.[0]?.phoneNumber ?? '',
     },
   })
 
-  function handleSubmit(data: z.infer<typeof formSchema>) {
-    updateFormData({
-      debtors: [
-        {
+  async function handleSubmit(data: z.infer<typeof formSchema>) {
+    setError(null)
+
+    startTransition(async () => {
+      if (!formData.base) return
+
+      const response = await createCaseAction({
+        base: {
+          creditPurpose: formData.base.creditPurpose as CreditPurpose,
+          loanAmount: formData.base.loanAmount as number,
+          payout: formData.base.payout,
+          equity: formData.base.equity,
+        },
+        debtor: {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-          phoneNumber: data.phone,
-          cprNumber: null, // Unavailable yet on this step
+          phoneNumber: data.phoneNumber,
         },
-      ],
-    })
+      })
 
-    onNextStep()
+      startTransition(() => {
+        if (response.status === 'success') {
+          updateFormData({
+            caseId: response.data.caseId,
+            debtors: [
+              {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                phoneNumber: data.phoneNumber,
+                cprNumber: response.data.temporaryCprNumber,
+              },
+            ],
+          })
+
+          onNextStep()
+        }
+
+        if (response.status === 'error') {
+          setError(new Error('Noget gik galt. Prøv venligst igen.'))
+        }
+      })
+    })
   }
 
   return (
@@ -69,6 +105,13 @@ export function LoanFormContactStep({
           Helt uforpligtende. Vi spammer aldrig.
         </LoanFormHeaderDescription>
       </LoanFormHeader>
+
+      {error && (
+        <BaseAlert className="mb-8" variant="error">
+          <CircleAlertIcon />
+          <BaseAlertDescription>{error.message}</BaseAlertDescription>
+        </BaseAlert>
+      )}
 
       <form className={className} onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="grid gap-6">
@@ -125,13 +168,14 @@ export function LoanFormContactStep({
           />
 
           <Controller
-            name="phone"
+            name="phoneNumber"
             control={form.control}
             render={({ field, fieldState }) => (
               <BaseField data-invalid={fieldState.invalid}>
-                <BaseFieldLabel htmlFor={`${id}-phone`}>Mobilnummer</BaseFieldLabel>
-                <BaseInput
-                  id={`${id}-phone`}
+                <BaseFieldLabel htmlFor={`${id}-phoneNumber`}>Mobilnummer</BaseFieldLabel>
+                <PhoneInput
+                  id={`${id}-phoneNumber`}
+                  defaultCountry="DK"
                   autoComplete="tel"
                   inputMode="tel"
                   aria-invalid={fieldState.invalid}
@@ -150,7 +194,7 @@ export function LoanFormContactStep({
           </BaseAlert>
         </div>
 
-        <LoanFormFooter onPrevious={onPreviousStep} />
+        <LoanFormFooter isNextStepDisabled={isPending} onPrevious={onPreviousStep} />
       </form>
     </>
   )

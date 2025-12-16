@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoanFormProgress } from '@/components/forms/loan/LoanFormProgress'
+import { LoanFormTrustSidebar } from '@/components/forms/loan/LoanFormTrustSidebar'
 import { LoanFormChildrenStep } from '@/components/forms/loan/steps/LoanFormChildrenStep'
 import { LoanFormContactStep } from '@/components/forms/loan/steps/LoanFormContactStep'
 import { LoanFormDebtorsStep } from '@/components/forms/loan/steps/LoanFormDebtorsStep'
@@ -18,9 +19,20 @@ import { TrustpilotWidget } from '@/components/ui/TrustpilotWidget'
 import { useLoanFormContext } from '@/contexts/loan-form'
 import { cn } from '@/lib/utils'
 import { EntryPath } from '@/types/loan-form'
-import { LoanFormTrustSidebar } from './LoanFormTrustSidebar'
 
-const TOTAL_STEPS = 9
+const LoanFormStep: Readonly<Record<string, number>> = {
+  Contact: 1,
+  Property: 2,
+  PropertyReview: 3,
+  Housing: 4,
+  MaritalStatus: 5,
+  Debtors: 6,
+  Children: 7,
+  Identity: 8,
+  Submission: 9,
+}
+
+const TOTAL_STEPS = Object.keys(LoanFormStep).length
 
 export function LoanForm({ className }: { className?: string }) {
   const formRef = useRef<HTMLDivElement>(null)
@@ -28,10 +40,12 @@ export function LoanForm({ className }: { className?: string }) {
   const router = useRouter()
   const { formData, step, nextStep, previousStep } = useLoanFormContext()
 
+  const isInitialStep = formData.entryPath === EntryPath.Planner && step === LoanFormStep.Contact
+
   // Scroll to top of form when step changes
   useEffect(() => {
-    // Don't scroll on initial load
-    if (step === 0) {
+    // Don't scroll on the initial step
+    if (isInitialStep) {
       return
     }
 
@@ -41,7 +55,7 @@ export function LoanForm({ className }: { className?: string }) {
         block: 'start',
       })
     }
-  }, [step])
+  }, [step, isInitialStep])
 
   function handleNextStep() {
     nextStep()
@@ -50,7 +64,7 @@ export function LoanForm({ className }: { className?: string }) {
   function handlePropertyNextStep(address: string) {
     if (!address) {
       // Skip property review step if address is not provided
-      nextStep(3)
+      nextStep(LoanFormStep.Housing)
     } else {
       handleNextStep()
     }
@@ -59,12 +73,12 @@ export function LoanForm({ className }: { className?: string }) {
   function handlePreviousStep() {
     if (formData.entryPath === EntryPath.Planner) {
       // Skip property review step if address is not provided
-      if (step === 3 && !formData.property?.address) {
-        previousStep(1)
+      if (step === LoanFormStep.Housing && !formData.property?.address) {
+        previousStep(LoanFormStep.Property)
         return
       }
 
-      if (step === 0) {
+      if (step === LoanFormStep.Contact) {
         router.back()
         return
       }
@@ -145,7 +159,7 @@ export function LoanForm({ className }: { className?: string }) {
             />
           )}
 
-          {/* Success step */}
+          {/* Success */}
           {step === TOTAL_STEPS + 1 && <LoanFormSuccessStep />}
         </div>
 

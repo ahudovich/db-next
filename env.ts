@@ -9,6 +9,7 @@ export const env = createEnv({
     DATABASE_URL: z.url().min(1),
     DATABASE_DIRECT_URL: z.url().min(1),
     OPENAI_API_KEY: z.string().min(1),
+    SIMPEL_KREDIT_API_URL: z.httpUrl().min(1),
     SIMPEL_KREDIT_TOKEN: z.string().min(1),
   },
   client: {

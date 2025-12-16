@@ -4,16 +4,16 @@ import { LoanFormFooter } from '@/components/forms/loan/LoanFormFooter'
 import { LoanFormHeader, LoanFormHeaderTitle } from '@/components/forms/loan/LoanFormHeader'
 import { LoanFormSelectionCard } from '@/components/forms/loan/steps/LoanFormSelectionCard'
 import { useLoanFormContext } from '@/contexts/loan-form'
+import { MaritalStatus } from '@/enums/form/MaritalStatus.enum'
 import type { LucideIcon } from 'lucide-react'
-import type { MaritalStatus } from '@/types/loan-form'
 
-const options: Array<{ label: string; value: MaritalStatus; icon: LucideIcon }> = [
-  { label: 'Gift', value: 'gift', icon: HeartIcon },
-  { label: 'Samlever', value: 'samlever', icon: HomeIcon },
-  { label: 'Enlig', value: 'enlig', icon: UserIcon },
-  { label: 'Skilt', value: 'skilt', icon: UserCheckIcon },
-  { label: 'Enke', value: 'enke', icon: FlowerIcon },
-] as const
+const options: Readonly<Array<{ label: string; value: MaritalStatus; icon: LucideIcon }>> = [
+  { label: 'Gift', value: MaritalStatus.Married, icon: HeartIcon },
+  { label: 'Samlever', value: MaritalStatus.Cohabiting, icon: HomeIcon },
+  { label: 'Enlig', value: MaritalStatus.Single, icon: UserIcon },
+  { label: 'Skilt', value: MaritalStatus.Divorced, icon: UserCheckIcon },
+  { label: 'Enke', value: MaritalStatus.Widow, icon: FlowerIcon },
+]
 
 export function LoanFormMaritalStatusStep({
   onNextStep,
