@@ -6,7 +6,7 @@ import { HeroFormSlider } from '@/components/forms/hero/HeroFormSlider'
 import { HeroFormToggle, HeroFormToggleItem } from '@/components/forms/hero/HeroFormToggle'
 import { BaseCtaButton } from '@/components/ui/BaseCtaButton'
 import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
-import { useLoanFormInitialValues } from '@/hooks/forms/useLoanFormInitialValues'
+import { useLoanFormAmounts } from '@/hooks/forms/useLoanFormAmounts'
 import { cn } from '@/lib/utils'
 
 export function HeroForm({ className }: { className?: string }) {
@@ -23,7 +23,7 @@ export function HeroForm({ className }: { className?: string }) {
     creditPurpose,
     setCreditPurpose,
     updateData,
-  } = useLoanFormInitialValues()
+  } = useLoanFormAmounts()
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

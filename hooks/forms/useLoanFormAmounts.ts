@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLoanFormContext } from '@/contexts/loan-form'
 import { CreditPurpose } from '@/enums/form/CreditPurpose.enum'
 
-export function useLoanFormInitialValues() {
+export function useLoanFormAmounts() {
   const [loanAmount, setLoanAmount] = useState<Array<number>>([1_000_000])
   const [payout, setPayout] = useState<Array<number>>([100_000])
   const [equity, setEquity] = useState<Array<number>>([1_000_000])

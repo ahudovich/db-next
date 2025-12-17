@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoanFormProgress } from '@/components/forms/loan/LoanFormProgress'
 import { LoanFormTrustSidebar } from '@/components/forms/loan/LoanFormTrustSidebar'
+import { LoanFormAmountStep } from '@/components/forms/loan/steps/LoanFormAmountStep'
 import { LoanFormChildrenStep } from '@/components/forms/loan/steps/LoanFormChildrenStep'
 import { LoanFormContactStep } from '@/components/forms/loan/steps/LoanFormContactStep'
 import { LoanFormDebtorsStep } from '@/components/forms/loan/steps/LoanFormDebtorsStep'
@@ -109,6 +110,10 @@ export function LoanForm({ className }: { className?: string }) {
 
       <div className="xl:grid xl:grid-cols-[1fr_auto]">
         <div className="pt-8 lg:px-12 lg:pt-12 lg:pb-18">
+          {step === 0 && (
+            <LoanFormAmountStep onNextStep={handleNextStep} onPreviousStep={handlePreviousStep} />
+          )}
+
           {step === 1 && (
             <LoanFormContactStep onNextStep={handleNextStep} onPreviousStep={handlePreviousStep} />
           )}
